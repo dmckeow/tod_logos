@@ -216,6 +216,21 @@
       return arr;
     }
 
+        function prioritizedShuffle(images, counts) {
+      const buckets = {};
+      for (const img of images) {
+        const c = counts[img] || 0;
+        if (!buckets[c]) buckets[c] = [];
+        buckets[c].push(img);
+      }
+      // Sort vote counts ascending (0 votes first, then 1, 2, ...), and shuffle within each tier
+      return Object.keys(buckets)
+        .map(Number)
+        .sort((a, b) => a - b)
+        .flatMap(count => shuffle(buckets[count]));
+    }
+
+
     async function startSession() {
       const nameVal = document.getElementById("reviewerInput").value.trim();
       if (!nameVal) return alert("Please enter a name or nickname first.");
@@ -230,7 +245,9 @@
           fetch(`${CONFIG.WEBHOOK_URL}?reviewer=${encodeURIComponent(nameVal)}`)
         ]);
         CONFIG.IMAGES = await logosRes.json();
-        const serverCompleted = await sheetRes.json();
+        const data = await sheetRes.json();
+        const serverCompleted = data.completed || [];
+        const voteCounts = data.counts || {};
 
         // Warn if existing progress is found under this name
         if (serverCompleted.length > 0) {
@@ -259,7 +276,10 @@
         return alert("Could not load logo list. Please refresh and try again.");
       }
 
-      queue = shuffle(CONFIG.IMAGES.filter(img => !completed.has(img)));
+      queue = prioritizedShuffle(
+        CONFIG.IMAGES.filter(img => !completed.has(img)),
+        voteCounts
+      );
       document.getElementById("setupScreen").style.display = "none";
       updateProgress();
 
