@@ -100,8 +100,11 @@
       </div>
 
       <label for="answerInput">Answer</label>
-      <div class="hint">What do you think it says? If you would only know what it says because you already know the band, skip</div>
-      <input type="text" id="answerInput" placeholder="e.g. BLOOD INCANTATION" />
+      <div class="hint">What do you think it says? If completely unreadable, leave blank.</div>
+      <div style="background:#161616; border-left:3px solid var(--accent); padding:8px 10px; border-radius:4px; font-size:0.78rem; color:var(--muted); margin-bottom:10px; line-height:1.4;">
+        <strong style="color:var(--text);">Important:</strong> Hit <strong>Skip</strong> if you only know what it says because you already recognize the band, or if a technical issue (such as tiny image size) prevents reading it.
+      </div>
+      <input type="text" id="answerInput" />
 
       <label>Confidence</label>
     <div class="hint">How certain are you about your answer?</div>
