@@ -83,7 +83,7 @@
       <ul style="color:var(--muted); font-size:0.88rem; line-height:1.55; padding-left:20px; margin:0 0 18px 0;">
         <li style="margin-bottom:6px;"><strong style="color:var(--text);">Answer:</strong> Put what you think the logo says, or leave it blank if is completely illegible.</li>
         <li style="margin-bottom:6px;"><strong style="color:var(--text);">Skip:</strong> If you could not actually read it, but know it only because you recognize the band, hit <strong>Skip</strong>. Or if there is something wrong with the logo, such as it not being readable due to its size or some technical issue, then <strong>Skip</strong></li>
-        <li style="margin-bottom:6px;"><strong style="color:var(--text);">Confidence:</strong> Pick <strong>Low</strong> to <strong>High</strong> for how certain you are of your answer.</li>
+        <li style="margin-bottom:6px;"><strong style="color:var(--text);">Confidence (1 to 5):</strong> Enter how certain you are of your answer.</li>
         <li style="margin-bottom:6px;"><strong style="color:var(--text);">Readability (1 to 5):</strong> Rate how much effort it took to decipher. <strong>(You can be highly confident about a logo that was difficult to read, and vice versa.)</strong></li>
         <li><strong style="color:var(--text);">Notes:</strong> Optional: put a quick comment if something stands out. Maybe someone will read it.</li>
       </ul>
@@ -110,12 +110,15 @@
     <div class="hint">How certain are you about your answer?</div>
 
       <div class="btn-group" id="confidenceGroup">
-        <button type="button" class="pill-btn" onclick="selectOption('confidence', 'Low', this)">Low</button>
-        <button type="button" class="pill-btn" onclick="selectOption('confidence', 'Medium', this)">Medium</button>
-        <button type="button" class="pill-btn" onclick="selectOption('confidence', 'High', this)">High</button>
+        <button type="button" class="pill-btn" onclick="selectOption('confidence', 1, this)">1<span class="readability-sub">Pure guess</span></button>
+        <button type="button" class="pill-btn" onclick="selectOption('confidence', 2, this)">2<span class="readability-sub">Doubtful</span></button>
+        <button type="button" class="pill-btn" onclick="selectOption('confidence', 3, this)">3<span class="readability-sub">50 / 50</span></button>
+        <button type="button" class="pill-btn" onclick="selectOption('confidence', 4, this)">4<span class="readability-sub">Pretty sure</span></button>
+        <button type="button" class="pill-btn" onclick="selectOption('confidence', 5, this)">5<span class="readability-sub">100% certain</span></button>
       </div>
 
-      <label>Readability (1–5)</label>
+      <label>Readability</label>
+          <div class="hint">How easily can you decipher the logo?</div>
       <div class="btn-group" id="readabilityGroup">
         <button type="button" class="pill-btn" onclick="selectOption('readability', 1, this)">1<span class="readability-sub">Illegible</span></button>
         <button type="button" class="pill-btn" onclick="selectOption('readability', 2, this)">2<span class="readability-sub">Mostly not</span></button>
@@ -124,8 +127,7 @@
         <button type="button" class="pill-btn" onclick="selectOption('readability', 5, this)">5<span class="readability-sub">Effortless</span></button>
       </div>
 
-      <label for="notesInput">Notes</label>
-      <div class="hint">Anything you'd like to note on this logo?.</div>
+      <label for="notesInput">Notes (optional)</label>
       <input type="text" id="notesInput" placeholder="e.g. Please forgive my illiterateness" />
 
       <div class="actions">
@@ -355,10 +357,10 @@
         completed.add(currentImage);
         localStorage.setItem("completed_logos", JSON.stringify([...completed]));
         updateProgress();
-        skipBtn.textContent = "Checking score...";
+        btn.textContent = "Checking score...";
         await checkCheckpoint();
         nextLogo();
-        
+
       } catch (err) {
         alert("Network error saving response. Please try again.");
       } finally {
