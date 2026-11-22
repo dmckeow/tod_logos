@@ -49,7 +49,7 @@
     }
     .pill-btn:hover { border-color: #666; }
     .pill-btn.active { background: var(--accent); border-color: var(--accent); color: #fff; }
-    .score-sub { display: block; font-size: 0.68rem; font-weight: 400; opacity: 0.85; margin-top: 2px; }
+    .readability-sub { display: block; font-size: 0.68rem; font-weight: 400; opacity: 0.85; margin-top: 2px; }
     .actions { display: flex; gap: 10px; margin-top: 8px; }
     .submit-btn {
       flex: 3; padding: 12px; background: var(--accent); color: #fff;
@@ -88,28 +88,26 @@
         <img id="logoImg" src="" alt="Band Logo" />
       </div>
 
-      <label for="literalInput">Literal_Read</label>
-      <div class="hint">Transcribe only unambiguous characters; use [?] for unclear glyphs.</div>
-      <input type="text" id="literalInput" placeholder="e.g. B[?]OOD [?]NCANTATION" />
-
-      <label for="guessInput">Best_Guess</label>
-      <div class="hint">Infer the intended word(s) using visual context and letter shapes.</div>
-      <input type="text" id="guessInput" placeholder="e.g. BLOOD INCANTATION" />
+      <label for="answerInput">Answer</label>
+      <div class="hint">What do you think it says? If you would only know what it says because you already know the band, skip</div>
+      <input type="text" id="answerInput" placeholder="e.g. BLOOD INCANTATION" />
 
       <label>Confidence</label>
+    <div class="hint">How certain are you about your answer?</div>
+
       <div class="btn-group" id="confidenceGroup">
         <button type="button" class="pill-btn" onclick="selectOption('confidence', 'Low', this)">Low</button>
         <button type="button" class="pill-btn" onclick="selectOption('confidence', 'Medium', this)">Medium</button>
         <button type="button" class="pill-btn" onclick="selectOption('confidence', 'High', this)">High</button>
       </div>
 
-      <label>Score (1–5)</label>
-      <div class="btn-group" id="scoreGroup">
-        <button type="button" class="pill-btn" onclick="selectOption('score', 1, this)">1<span class="score-sub">Illegible</span></button>
-        <button type="button" class="pill-btn" onclick="selectOption('score', 2, this)">2<span class="score-sub">Mostly not</span></button>
-        <button type="button" class="pill-btn" onclick="selectOption('score', 3, this)">3<span class="score-sub">With effort</span></button>
-        <button type="button" class="pill-btn" onclick="selectOption('score', 4, this)">4<span class="score-sub">Fairly clear</span></button>
-        <button type="button" class="pill-btn" onclick="selectOption('score', 5, this)">5<span class="score-sub">Effortless</span></button>
+      <label>Readability (1–5)</label>
+      <div class="btn-group" id="readabilityGroup">
+        <button type="button" class="pill-btn" onclick="selectOption('readability', 1, this)">1<span class="readability-sub">Illegible</span></button>
+        <button type="button" class="pill-btn" onclick="selectOption('readability', 2, this)">2<span class="readability-sub">Mostly not</span></button>
+        <button type="button" class="pill-btn" onclick="selectOption('readability', 3, this)">3<span class="readability-sub">With effort</span></button>
+        <button type="button" class="pill-btn" onclick="selectOption('readability', 4, this)">4<span class="readability-sub">Fairly clear</span></button>
+        <button type="button" class="pill-btn" onclick="selectOption('readability', 5, this)">5<span class="readability-sub">Effortless</span></button>
       </div>
 
       <label for="notesInput">Notes</label>
@@ -142,7 +140,7 @@
     let queue = [];
     let currentIndex = 0;
     let startTime = 0;
-    let formState = { confidence: null, score: null };
+    let formState = { confidence: null, readability: null };
 
     const completed = new Set(JSON.parse(localStorage.getItem("completed_logos") || "[]"));
 
@@ -217,12 +215,11 @@
         preload.src = CONFIG.LOGO_FOLDER + queue[currentIndex + 1];
       }
 
-      document.getElementById("literalInput").value = "";
-      document.getElementById("guessInput").value = "";
+      document.getElementById("answerInput").value = "";
       document.getElementById("notesInput").value = "";
-      formState = { confidence: null, score: null };
+      formState = { confidence: null, readability: null };
       document.querySelectorAll(".pill-btn").forEach(b => b.classList.remove("active"));
-      document.getElementById("literalInput").focus();
+      document.getElementById("answerInput").focus();
 
       startTime = Date.now();
     }
@@ -233,11 +230,10 @@
     }
 
     async function submitRating() {
-      const literal_read = document.getElementById("literalInput").value.trim();
-      const best_guess = document.getElementById("guessInput").value.trim();
+      const best_guess = document.getElementById("answerInput").value.trim();
       const notes = document.getElementById("notesInput").value.trim();
 
-      if (!formState.confidence || !formState.score) {
+      if (!formState.confidence || !formState.readability) {
         return alert("Please select both a Confidence level and a Score (1–5).");
       }
 
@@ -252,7 +248,7 @@
         literal_read: literal_read || "[?]",
         best_guess: best_guess || "Unknown",
         confidence: formState.confidence,
-        score: formState.score,
+        readability: formState.readability,
         notes: notes || "",
         time_taken_sec: Math.round((Date.now() - startTime) / 1000)
       };
