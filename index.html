@@ -74,10 +74,21 @@
     <!-- Setup Screen -->
     <div id="setupScreen" class="card">
       <h2 style="margin-top:0;">Metal Logo Readability</h2>
-      <p style="color:var(--muted); font-size:0.9rem; line-height:1.4;">
-        Does logo readability correlate with metal genre? Which metal genre empirically has the least readable logos? Are the greatest bands those with the least readable logos? Such questions have plagued science for decades. Now let us find the answer. Your task is simple. Look at each band logo, and enter into Answer what you think it says. If you encounter a logo that you could not read, but you know what it says because you know the band, then skip it. Select in Confidence from Low to High how certain you are of your Answer. Finally, give a Readability rating from 1 to 5 - indicating how much effort it took you to read the logo. Consider that you are be highly confident of a logo that took ages to read, and vice versa, and everything in between. Optionally, you can provide a little note if you want, maybe someone will read it.
+      <p style="color:var(--text); font-size:0.95rem; line-height:1.5; margin-bottom:10px;">
+        Does logo readability correlate with metal genre? Which subgenre empirically has the least readable logos? Are the greatest bands those with the most incomprehensible logos?
       </p>
+      <p style="color:var(--muted); font-size:0.88rem; line-height:1.45; margin-bottom:14px;">
+        Such questions have plagued science for eons. Now let us find the answer:
+      </p>
+      <ul style="color:var(--muted); font-size:0.88rem; line-height:1.55; padding-left:20px; margin:0 0 18px 0;">
+        <li style="margin-bottom:6px;"><strong style="color:var(--text);">Answer:</strong> Put what you think the logo says, or leave it blank if is completely illegible.</li>
+        <li style="margin-bottom:6px;"><strong style="color:var(--text);">Skip:</strong> If you could not actually read it, but know it only because you recognize the band, hit <strong>Skip</strong>. Or if there is something wrong with the logo, such as it not being readable due to its size or some technical issue, then <strong>Skip</strong></li>
+        <li style="margin-bottom:6px;"><strong style="color:var(--text);">Confidence:</strong> Pick <strong>Low</strong> to <strong>High</strong> for how certain you are of your answer.</li>
+        <li style="margin-bottom:6px;"><strong style="color:var(--text);">Readability (1 to 5):</strong> Rate how much effort it took to decipher. <strong>(You can be highly confident about a logo that was difficult to read, and vice versa.)</strong></li>
+        <li><strong style="color:var(--text);">Notes:</strong> Optional: put a quick comment if something stands out. Maybe someone will read it.</li>
+      </ul>
       <label for="reviewerInput">Your Name / Nickname</label>
+      <div class="hint">Progress is saved automatically on this device—use the same name if you return later to pick up where you left off.</div>
       <input type="text" id="reviewerInput" placeholder="e.g. Ronny James Dio" />
       <button class="submit-btn" style="width:100%;" onclick="startSession()">Start Evaluating</button>
     </div>
@@ -155,21 +166,44 @@
     async function startSession() {
       const nameVal = document.getElementById("reviewerInput").value.trim();
       if (!nameVal) return alert("Please enter a name or nickname first.");
-      reviewer = nameVal;
-      localStorage.setItem("reviewer_name", reviewer);
-      document.getElementById("reviewerDisplay").textContent = `Reviewer: ${reviewer}`;
 
       const startBtn = document.querySelector("#setupScreen .submit-btn");
       startBtn.disabled = true;
-      startBtn.textContent = "Loading logos...";
+      startBtn.textContent = "Checking progress...";
 
       try {
-        const res = await fetch("logos.json");
-        CONFIG.IMAGES = await res.json();
+        const [logosRes, sheetRes] = await Promise.all([
+          fetch("logos.json"),
+          fetch(`${CONFIG.WEBHOOK_URL}?reviewer=${encodeURIComponent(nameVal)}`)
+        ]);
+        CONFIG.IMAGES = await logosRes.json();
+        const serverCompleted = await sheetRes.json();
+
+        // Warn if existing progress is found under this name
+        if (serverCompleted.length > 0) {
+          const proceed = confirm(
+            `Found ${serverCompleted.length} completed logos for "${nameVal}".\n\n` +
+            `Click OK to resume where you left off, or Cancel to choose a different name.`
+          );
+          if (!proceed) {
+            startBtn.disabled = false;
+            startBtn.textContent = "Start Evaluating";
+            document.getElementById("reviewerInput").focus();
+            return;
+          }
+        }
+
+        reviewer = nameVal;
+        localStorage.setItem("reviewer_name", reviewer);
+        document.getElementById("reviewerDisplay").textContent = `Reviewer: ${reviewer}`;
+
+        completed.clear();
+        serverCompleted.forEach(img => completed.add(img));
+        localStorage.setItem("completed_logos", JSON.stringify([...completed]));
       } catch (e) {
         startBtn.disabled = false;
         startBtn.textContent = "Start Evaluating";
-        return alert("Could not load logo list from GitHub. Please refresh and try again.");
+        return alert("Could not load logo list. Please refresh and try again.");
       }
 
       queue = shuffle(CONFIG.IMAGES.filter(img => !completed.has(img)));
@@ -238,9 +272,9 @@
         reviewer,
         image: currentImage,
         answer: "SKIPPED",
-        confidence: "Skipped",
-        readability: "",
-        notes: notes || "Skipped (already knew band or skipped)",
+        confidence: "SKIPPED",
+        readability: "SKIPPED",
+        notes: notes || "SKIPPED",
         time_taken_sec: Math.round((Date.now() - startTime) / 1000)
       };
 
@@ -269,9 +303,15 @@
       const answer = document.getElementById("answerInput").value.trim();
       const notes = document.getElementById("notesInput").value.trim();
 
-      if (!formState.confidence || !formState.readability) {
+      // If they entered an answer, require Confidence and Readability
+      if (answer && (!formState.confidence || !formState.readability)) {
         return alert("Please select both a Confidence level and a Readability score (1–5).");
       }
+
+      // If no answer was entered, default Confidence to "NA" and Readability to 1 (unless they manually clicked a score)
+      const finalAnswer = answer || "[ILLEGIBLE]";
+      const finalConfidence = answer ? formState.confidence : (formState.confidence || "[ILLEGIBLE]");
+      const finalReadability = answer ? formState.readability : (formState.readability || 1);
 
       const btn = document.getElementById("submitBtn");
       btn.disabled = true;
@@ -281,9 +321,9 @@
       const payload = {
         reviewer,
         image: currentImage,
-        answer: answer || "Unknown",
-        confidence: formState.confidence,
-        readability: formState.readability,
+        answer: finalAnswer,
+        confidence: finalConfidence,
+        readability: finalReadability,
         notes: notes || "",
         time_taken_sec: Math.round((Date.now() - startTime) / 1000)
       };
