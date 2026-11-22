@@ -62,6 +62,40 @@
       border: 1px solid var(--border); border-radius: 6px; cursor: pointer;
     }
     .skip-btn:hover { color: var(--text); border-color: #666; }
+        .modal-backdrop {
+      position: fixed; inset: 0; background: rgba(0, 0, 0, 0.82);
+      display: none; align-items: center; justify-content: center;
+      padding: 16px; z-index: 999; backdrop-filter: blur(3px);
+    }
+    .modal-card {
+      background: var(--card); border: 2px solid var(--accent);
+      border-radius: 12px; padding: 24px; width: 100%; max-width: 420px;
+      text-align: center; box-shadow: 0 12px 32px rgba(0,0,0,0.6);
+      animation: popIn 0.2s ease-out;
+    }
+    @keyframes popIn {
+      from { transform: scale(0.92); opacity: 0; }
+      to { transform: scale(1); opacity: 1; }
+    }
+    .modal-badge {
+      display: inline-block; background: rgba(230, 57, 70, 0.15);
+      color: var(--accent); border: 1px solid var(--accent);
+      font-size: 0.75rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.08em; padding: 4px 10px; border-radius: 999px;
+      margin-bottom: 10px;
+    }
+    .modal-score {
+      font-size: 2.6rem; font-weight: 800; color: #fff; margin: 6px 0;
+    }
+    .modal-rank {
+      font-size: 1.05rem; font-weight: 700; color: var(--accent); margin-bottom: 10px;
+    }
+    .modal-stats {
+      background: #141414; border: 1px solid var(--border); border-radius: 8px;
+      padding: 12px; margin: 14px 0 18px 0; font-size: 0.88rem; color: var(--muted);
+      line-height: 1.5;
+    }
+
   </style>
 </head>
 <body>
@@ -88,7 +122,7 @@
         <li><strong style="color:var(--text);">Notes:</strong> Optional: put a quick comment if something stands out. Maybe someone will read it.</li>
       </ul>
       <label for="reviewerInput">Your Name / Nickname</label>
-      <div class="hint">Progress is saved automatically on this device—use the same name if you return later to pick up where you left off.</div>
+      <div class="hint">Progress is saved automatically - use the same name if you return later to pick up where you left off.</div>
       <input type="text" id="reviewerInput" placeholder="e.g. Ronny James Dio" />
       <button class="submit-btn" style="width:100%;" onclick="startSession()">Start Evaluating</button>
     </div>
@@ -142,6 +176,20 @@
       <p style="color:var(--muted);">You've evaluated every logo in this set. You will be rewarded I guess?</p>
     </div>
   </div>
+
+    <!-- Checkpoint Modal -->
+  <div id="checkpointModal" class="modal-backdrop">
+    <div class="modal-card">
+      <div class="modal-badge" id="modalBadge">10 Logos Completed</div>
+      <div class="modal-score" id="modalPct">0%</div>
+      <div class="modal-rank" id="modalRank">Poser</div>
+      <div class="modal-stats" id="modalDetails">
+        You nailed <strong>0</strong> out of <strong>0</strong> non-skipped logos.
+      </div>
+      <button type="button" class="submit-btn" style="width:100%;" onclick="closeCheckpointModal()">Keep Going</button>
+    </div>
+  </div>
+
 
   <script>
     const CONFIG = {
@@ -264,12 +312,36 @@
       loadCurrentLogo();
     }
 
-        async function checkCheckpoint() {
+    function getMetalRank(pct) {
+      if (pct >= 80) return "There is no font your gaze cannot pierce";
+      if (pct >= 60) return "You see what lies between the scrawls";
+      if (pct >= 40) return "The long path still stretches before you";
+      if (pct >= 20) return "Poser";
+      return "Can you even read normal stuff?";
+    }
+
+    function closeCheckpointModal() {
+      document.getElementById("checkpointModal").style.display = "none";
+      if (window._checkpointResolve) {
+        window._checkpointResolve();
+        window._checkpointResolve = null;
+      }
+    }
+
+    async function checkCheckpoint() {
       if (completed.size > 0 && completed.size % 10 === 0) {
         const scoreRes = await fetch(`${CONFIG.WEBHOOK_URL}?action=score&reviewer=${encodeURIComponent(reviewer)}`);
         const { attempted, exactMatches } = await scoreRes.json();
         const pct = attempted > 0 ? Math.round((exactMatches / attempted) * 100) : 0;
-        alert(`Checkpoint (${completed.size} completed)! Across ${attempted} non-skipped logos, you nailed ${exactMatches} exact band names (${pct}%). Keep going!`);
+
+        document.getElementById("modalBadge").textContent = `${completed.size} Logos Completed`;
+        document.getElementById("modalPct").textContent = `${pct}%`;
+        document.getElementById("modalRank").textContent = getMetalRank(pct);
+        document.getElementById("modalDetails").innerHTML =
+          `You got <strong style="color:#fff;">${exactMatches}</strong> exact band names out of <strong style="color:#fff;">${attempted}</strong> non-skipped logos.`;
+
+        document.getElementById("checkpointModal").style.display = "flex";
+        await new Promise(resolve => { window._checkpointResolve = resolve; });
       }
     }
 
