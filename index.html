@@ -115,7 +115,7 @@
       <input type="text" id="notesInput" placeholder="e.g. Heavy vertical spikes obscure the middle vowels." />
 
       <div class="actions">
-        <button type="button" class="skip-btn" onclick="nextLogo()">Skip</button>
+        <button type="button" id="skipBtn" class="skip-btn" onclick="skipLogo()">Skip</button>
         <button type="button" id="submitBtn" class="submit-btn" onclick="submitRating()">Submit & Next</button>
       </div>
     </div>
@@ -225,12 +225,52 @@
       loadCurrentLogo();
     }
 
+    async function skipLogo() {
+      const skipBtn = document.getElementById("skipBtn");
+      const submitBtn = document.getElementById("submitBtn");
+      skipBtn.disabled = true;
+      submitBtn.disabled = true;
+      skipBtn.textContent = "Skipping...";
+
+      const currentImage = queue[currentIndex];
+      const notes = document.getElementById("notesInput").value.trim();
+      const payload = {
+        reviewer,
+        image: currentImage,
+        answer: "SKIPPED",
+        confidence: "Skipped",
+        readability: "",
+        notes: notes || "Skipped (already knew band or skipped)",
+        time_taken_sec: Math.round((Date.now() - startTime) / 1000)
+      };
+
+      try {
+        await fetch(CONFIG.WEBHOOK_URL, {
+          method: "POST",
+          mode: "no-cors",
+          headers: { "Content-Type": "text/plain;charset=utf-8" },
+          body: JSON.stringify(payload)
+        });
+
+        completed.add(currentImage);
+        localStorage.setItem("completed_logos", JSON.stringify([...completed]));
+        updateProgress();
+        nextLogo();
+      } catch (err) {
+        alert("Network error logging skip. Please try again.");
+      } finally {
+        skipBtn.disabled = false;
+        submitBtn.disabled = false;
+        skipBtn.textContent = "Skip";
+      }
+    }
+
     async function submitRating() {
-      const best_guess = document.getElementById("answerInput").value.trim();
+      const answer = document.getElementById("answerInput").value.trim();
       const notes = document.getElementById("notesInput").value.trim();
 
       if (!formState.confidence || !formState.readability) {
-        return alert("Please select both a Confidence level and a Score (1–5).");
+        return alert("Please select both a Confidence level and a Readability score (1–5).");
       }
 
       const btn = document.getElementById("submitBtn");
@@ -241,8 +281,7 @@
       const payload = {
         reviewer,
         image: currentImage,
-        literal_read: literal_read || "[?]",
-        best_guess: best_guess || "Unknown",
+        answer: answer || "Unknown",
         confidence: formState.confidence,
         readability: formState.readability,
         notes: notes || "",
@@ -253,7 +292,7 @@
         await fetch(CONFIG.WEBHOOK_URL, {
           method: "POST",
           mode: "no-cors",
-          headers: { "Content-Type": "application/json" },
+          headers: { "Content-Type": "text/plain;charset=utf-8" },
           body: JSON.stringify(payload)
         });
 
