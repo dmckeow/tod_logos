@@ -262,6 +262,16 @@
       loadCurrentLogo();
     }
 
+        async function checkCheckpoint() {
+      if (completed.size > 0 && completed.size % 10 === 0) {
+        const scoreRes = await fetch(`${CONFIG.WEBHOOK_URL}?action=score&reviewer=${encodeURIComponent(reviewer)}`);
+        const { attempted, exactMatches } = await scoreRes.json();
+        const pct = attempted > 0 ? Math.round((exactMatches / attempted) * 100) : 0;
+        alert(`Checkpoint (${completed.size} completed)! Across ${attempted} non-skipped logos, you nailed ${exactMatches} exact band names (${pct}%). Keep going!`);
+      }
+    }
+
+
     async function skipLogo() {
       const skipBtn = document.getElementById("skipBtn");
       const submitBtn = document.getElementById("submitBtn");
@@ -292,7 +302,10 @@
         completed.add(currentImage);
         localStorage.setItem("completed_logos", JSON.stringify([...completed]));
         updateProgress();
+        skipBtn.textContent = "Checking score...";
+        await checkCheckpoint();
         nextLogo();
+
       } catch (err) {
         alert("Network error logging skip. Please try again.");
       } finally {
@@ -342,7 +355,10 @@
         completed.add(currentImage);
         localStorage.setItem("completed_logos", JSON.stringify([...completed]));
         updateProgress();
+        skipBtn.textContent = "Checking score...";
+        await checkCheckpoint();
         nextLogo();
+        
       } catch (err) {
         alert("Network error saving response. Please try again.");
       } finally {
