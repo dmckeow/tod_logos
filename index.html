@@ -73,12 +73,12 @@
 
     <!-- Setup Screen -->
     <div id="setupScreen" class="card">
-      <h2 style="margin-top:0;">Metal Logo Readability Study</h2>
+      <h2 style="margin-top:0;">Metal Logo Readability</h2>
       <p style="color:var(--muted); font-size:0.9rem; line-height:1.4;">
-        Evaluate each band logo strictly from visual evidence—do not rely on outside knowledge of existing bands.
+        Does logo readability correlate with metal genre? Which metal genre empirically has the least readable logos? Are the greatest bands those with the least readable logos? Such questions have plagued science for decades. Now let us find the answer. Your task is simple. Look at each band logo, and enter into Answer what you think it says. If you encounter a logo that you could not read, but you know what it says because you know the band, then skip it. Select in Confidence from Low to High how certain you are of your Answer. Finally, give a Readability rating from 1 to 5 - indicating how much effort it took you to read the logo. Consider that you are be highly confident of a logo that took ages to read, and vice versa, and everything in between. Optionally, you can provide a little note if you want, maybe someone will read it.
       </p>
       <label for="reviewerInput">Your Name / Nickname</label>
-      <input type="text" id="reviewerInput" placeholder="e.g. Alex" />
+      <input type="text" id="reviewerInput" placeholder="e.g. Ronny James Dio" />
       <button class="submit-btn" style="width:100%;" onclick="startSession()">Start Evaluating</button>
     </div>
 
@@ -164,12 +164,8 @@
       startBtn.textContent = "Loading logos...";
 
       try {
-        const apiUrl = `https://github.com{CONFIG.GITHUB_USER}/${CONFIG.GITHUB_REPO}/contents/logos`;
-        const res = await fetch(apiUrl);
-        const files = await res.json();
-        CONFIG.IMAGES = files
-          .filter(f => /\.(png|jpe?g|gif|webp|bmp)$/i.test(f.name))
-          .map(f => f.name);
+        const res = await fetch("logos.json");
+        CONFIG.IMAGES = await res.json();
       } catch (e) {
         startBtn.disabled = false;
         startBtn.textContent = "Start Evaluating";
