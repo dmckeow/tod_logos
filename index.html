@@ -402,33 +402,37 @@
 
       const currentImage = queue[currentIndex];
       const payload = {
-reviewer,
-image: currentImage,
-literal_read: literal_read || "[?]",
-best_guess: best_guess || "Unknown",
-confidence: formState.confidence,
-score: formState.score,
-notes: notes || "",
-time_taken_sec: Math.round((Date.now() - startTime) / 1000)
-};
-try {
-await fetch(CONFIG.WEBHOOK_URL, {
-method: "POST",
-mode: "no-cors", // Prevents browser CORS block on Google Apps Script redirects
-headers: { "Content-Type": "application/json" },
-body: JSON.stringify(payload)
-});
-completed.add(currentImage);
-localStorage.setItem("completed_logos", JSON.stringify([...completed]));
-updateProgress();
-nextLogo();
-} catch (err) {
-alert("Network error saving response. Please try again.");
-} finally {
-btn.disabled = false;
-btn.textContent = "Submit & Next";
+        reviewer,
+        image: currentImage,
+        literal_read: literal_read || "[?]",
+        best_guess: best_guess || "Unknown",
+        confidence: formState.confidence,
+        score: formState.score,
+        notes: notes || "",
+        time_taken_sec: Math.round((Date.now() - startTime) / 1000)
+    };
+    try {
+    await fetch(CONFIG.WEBHOOK_URL, {
+        method: "POST",
+        mode: "no-cors", // Prevents browser CORS block on Google Apps Script redirects
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+    });
+    completed.add(currentImage);
+    localStorage.setItem("completed_logos", JSON.stringify([...completed]));
+    updateProgress();
+    nextLogo();
+    } catch (err) {
+    alert("Network error saving response. Please try again.");
+    } finally {
+    btn.disabled = false;
+    btn.textContent = "Submit & Next";
+    }
 }
-}
-// Auto-fill saved name if returning
-const savedName = localStorage.getItem("reviewer_name");
-if (savedName) document.getElementById("reviewerInput").value = savedName;
+
+    // Auto-fill saved name if returning
+    const savedName = localStorage.getItem("reviewer_name");
+    if (savedName) document.getElementById("reviewerInput").value = savedName;
+  </script>
+</body>
+</html>
