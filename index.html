@@ -1,0 +1,436 @@
+# https://script.google.com/macros/s/AKfycbwe_5-2dRcHqOsxN9tofvnQMykroLmWDPsROA3Tu_CT8TDeZXEw7N69eeTmhAWAvTEsZA/exec
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Metal Logo Readability Benchmark</title>
+  <style>
+    :root {
+      --bg: #121212;
+      --card: #1e1e1e;
+      --border: #333;
+      --text: #f0f0f0;
+      --muted: #999;
+      --accent: #e63946;
+      --accent-hover: #ff4d5a;
+    }
+    * { box-sizing: border-box; font-family: system-ui, -apple-system, sans-serif; }
+    body {
+      background: var(--bg); color: var(--text);
+      margin: 0; padding: 16px; display: flex; justify-content: center;
+    }
+    .container { width: 100%; max-width: 640px; }
+    .header {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 12px; font-size: 0.9rem; color: var(--muted);
+    }
+    .card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 10px; padding: 20px; margin-bottom: 16px;
+    }
+    .logo-box {
+      background: #000; border: 1px solid var(--border); border-radius: 8px;
+      height: 240px; display: flex; align-items: center; justify-content: center;
+      margin-bottom: 18px; overflow: hidden; padding: 12px;
+    }
+    .logo-box img { max-width: 100%; max-height: 100%; object-fit: contain; }
+    label { display: block; font-weight: 600; font-size: 0.9rem; margin-bottom: 4px; }
+    .hint { font-size: 0.78rem; color: var(--muted); margin-bottom: 6px; }
+    input[type="text"] {
+      width: 100%; padding: 10px; border-radius: 6px; border: 1px solid var(--border);
+      background: #141414; color: var(--text); font-size: 0.95rem; margin-bottom: 14px;
+    }
+    input[type="text"]:focus { outline: none; border-color: var(--accent); }
+    .btn-group { display: flex; gap: 8px; margin-bottom: 16px; }
+    .pill-btn {
+      flex: 1; padding: 10px 6px; background: #141414; color: var(--text);
+      border: 1px solid var(--border); border-radius: 6px; cursor: pointer;
+      font-weight: 600; text-align: center; transition: 0.15s;
+    }
+    .pill-btn:hover { border-color: #666; }
+    .pill-btn.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .score-sub { display: block; font-size: 0.68rem; font-weight: 400; opacity: 0.85; margin-top: 2px; }
+    .actions { display: flex; gap: 10px; margin-top: 8px; }
+    .submit-btn {
+      flex: 3; padding: 12px; background: var(--accent); color: #fff;
+      border: none; border-radius: 6px; font-size: 1rem; font-weight: 700; cursor: pointer;
+    }
+    .submit-btn:hover { background: var(--accent-hover); }
+    .submit-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .skip-btn {
+      flex: 1; padding: 12px; background: transparent; color: var(--muted);
+      border: 1px solid var(--border); border-radius: 6px; cursor: pointer;
+    }
+    .skip-btn:hover { color: var(--text); border-color: #666; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <span id="reviewerDisplay">Reviewer: —</span>
+      <span id="progressDisplay">0 / 0 completed</span>
+    </div>
+
+    <!-- Setup Screen -->
+    <div id="setupScreen" class="card">
+      <h2 style="margin-top:0;">Metal Logo Readability Study</h2>
+      <p style="color:var(--muted); font-size:0.9rem; line-height:1.4;">
+        Evaluate each band logo strictly from visual evidence—do not rely on outside knowledge of existing bands.
+      </p>
+      <label for="reviewerInput">Your Name / Nickname</label>
+      <input type="text" id="reviewerInput" placeholder="e.g. Alex" />
+      <button class="submit-btn" style="width:100%;" onclick="startSession()">Start Evaluating</button>
+    </div>
+
+    <!-- Evaluation Screen -->
+    <div id="evalScreen" class="card" style="display:none;">
+      <div class="logo-box">
+        <img id="logoImg" src="" alt="Band Logo" />
+      </div>
+
+      <label for="literalInput">Literal_Read</label>
+      <div class="hint">Transcribe only unambiguous characters; use [?] for unclear glyphs.</div>
+      <input type="text" id="literalInput" placeholder="e.g. B[?]OOD [?]NCANTATION" />
+
+      <label for="guessInput">Best_Guess</label>
+      <div class="hint">Infer the intended word(s) using visual context and letter shapes.</div>
+      <input type="text" id="guessInput" placeholder="e.g. BLOOD INCANTATION" />
+
+      <label>Confidence</label>
+      <div class="btn-group" id="confidenceGroup">
+        <button type="button" class="pill-btn" onclick="selectOption('confidence', 'Low', this)">Low</button>
+        <button type="button" class="pill-btn" onclick="selectOption('confidence', 'Medium', this)">Medium</button>
+        <button type="button" class="pill-btn" onclick="selectOption('confidence', 'High', this)">High</button>
+      </div>
+
+      <label>Score (1–5)</label>
+      <div class="btn-group" id="scoreGroup">
+        <button type="button" class="pill-btn" onclick="selectOption('score', 1, this)">1<span class="score-sub">Illegible</span></button>
+        <button type="button" class="pill-btn" onclick="selectOption('score', 2, this)">2<span class="score-sub">Mostly not</span></button>
+        <button type="button" class="pill-btn" onclick="selectOption('score', 3, this)">3<span class="score-sub">With effort</span></button>
+        <button type="button" class="pill-btn" onclick="selectOption('score', 4, this)">4<span class="score-sub">Fairly clear</span></button>
+        <button type="button" class="pill-btn" onclick="selectOption('score', 5, this)">5<span class="score-sub">Effortless</span></button>
+      </div>
+
+      <label for="notesInput">Notes</label>
+      <div class="hint">One short sentence on which specific letters or styling choices help or hurt legibility.</div>
+      <input type="text" id="notesInput" placeholder="e.g. Heavy vertical spikes obscure the middle vowels." />
+
+      <div class="actions">
+        <button type="button" class="skip-btn" onclick="nextLogo()">Skip</button>
+        <button type="button" id="submitBtn" class="submit-btn" onclick="submitRating()">Submit & Next</button>
+      </div>
+    </div>
+
+    <!-- Done Screen -->
+    <div id="doneScreen" class="card" style="display:none; text-align:center;">
+      <h2>All Done!</h2>
+      <p style="color:var(--muted);">You've evaluated every logo in this set. Thanks for contributing!</p>
+    </div>
+  </div>
+
+  <script>
+    const CONFIG = {
+      WEBHOOK_URL: "https://script.google.com/macros/s/AKfycbwe_5-2dRcHqOsxN9tofvnQMykroLmWDPsROA3Tu_CT8TDeZXEw7N69eeTmhAWAvTEsZA/exec",
+      LOGO_FOLDER: "logos/",
+      // Replace with: ls logos | sed 's/.*/"&",/' | pbcopy and paste within images: []
+      IMAGES: [
+        "10281.jpeg",
+        "10319.gif",
+        "104261.jpeg",
+        "112400.jpeg",
+        "113089.jpeg",
+        "115844.jpeg",
+        "118322.png",
+        "121473.jpeg",
+        "125050.jpeg",
+        "126308.jpeg",
+        "1530.jpeg",
+        "17397.jpeg",
+        "17850.jpeg",
+        "18267.jpeg",
+        "19837.jpeg",
+        "20413.png",
+        "22025.jpeg",
+        "23159.jpeg",
+        "24468.jpeg",
+        "2556.gif",
+        "27525.jpeg",
+        "31234.jpeg",
+        "35105.jpeg",
+        "3540255850.gif",
+        "3540257815.jpeg",
+        "3540269773.jpeg",
+        "3540270239.jpeg",
+        "3540270552.png",
+        "3540270690.jpeg",
+        "3540276908.jpeg",
+        "3540277925.jpeg",
+        "3540281107.gif",
+        "3540282847.jpeg",
+        "3540286392.jpeg",
+        "3540287428.jpeg",
+        "3540288380.png",
+        "3540304806.jpeg",
+        "3540311609.jpeg",
+        "3540315433.png",
+        "3540318188.jpeg",
+        "3540321576.png",
+        "3540328454.jpeg",
+        "3540329864.jpeg",
+        "3540333381.jpeg",
+        "3540338738.jpeg",
+        "3540339741.png",
+        "3540341269.jpeg",
+        "3540346546.jpeg",
+        "3540348483.jpeg",
+        "3540350468.gif",
+        "3540350944.jpeg",
+        "3540351442.jpeg",
+        "3540353323.jpeg",
+        "3540372119.png",
+        "3540375587.jpeg",
+        "3540375956.jpeg",
+        "3540376091.jpeg",
+        "3540376330.jpeg",
+        "3540378348.jpeg",
+        "3540378600.png",
+        "3540381679.jpeg",
+        "3540381774.jpeg",
+        "3540396764.jpeg",
+        "3540397131.jpeg",
+        "3540397563.webp",
+        "3540401675.jpeg",
+        "3540406761.jpeg",
+        "3540407567.jpeg",
+        "3540408157.jpeg",
+        "3540408705.jpeg",
+        "3540411045.png",
+        "3540412252.jpeg",
+        "3540416672.png",
+        "3540419358.jpeg",
+        "3540419991.jpeg",
+        "3540430525.jpeg",
+        "3540431589.jpeg",
+        "3540431630.jpeg",
+        "3540431655.png",
+        "3540436490.jpeg",
+        "3540437399.png",
+        "3540438266.jpeg",
+        "3540440398.jpeg",
+        "3540440487.jpeg",
+        "3540446149.jpeg",
+        "3540447941.jpeg",
+        "3540449706.jpeg",
+        "3540454256.jpeg",
+        "3540455324.jpeg",
+        "3540456229.jpeg",
+        "3540456847.jpeg",
+        "3540459804.jpeg",
+        "3540460108.jpeg",
+        "3540463508.jpeg",
+        "3540464440.jpeg",
+        "3540466741.png",
+        "3540468968.png",
+        "3540473327.png",
+        "3540475914.webp",
+        "3540478987.jpeg",
+        "3540482786.jpeg",
+        "3540486947.png",
+        "3540488148.jpeg",
+        "3540491658.jpeg",
+        "3540493879.jpeg",
+        "3540500994.png",
+        "3540504625.jpeg",
+        "3540506158.jpeg",
+        "3540506403.jpeg",
+        "3540509646.jpeg",
+        "3540515633.jpeg",
+        "3540515712.jpeg",
+        "3540517112.jpeg",
+        "3540520407.png",
+        "3540521767.jpeg",
+        "3540522358.jpeg",
+        "3540525609.jpeg",
+        "3540529963.jpeg",
+        "3540532381.jpeg",
+        "3540534624.jpeg",
+        "3540535527.jpeg",
+        "3540536287.jpeg",
+        "3540536952.jpeg",
+        "3540538798.jpeg",
+        "3540543166.jpeg",
+        "3540543534.jpeg",
+        "3540544355.png",
+        "3540550929.jpeg",
+        "3540553559.jpeg",
+        "3540556546.jpeg",
+        "3540557202.jpeg",
+        "3540558132.jpeg",
+        "3540560259.jpeg",
+        "3540561383.jpeg",
+        "3540561968.webp",
+        "3540563702.jpeg",
+        "3540564256.jpeg",
+        "3540566479.jpeg",
+        "3540571037.jpeg",
+        "3540573199.jpeg",
+        "3540579322.jpeg",
+        "3540580279.jpeg",
+        "3540585780.jpeg",
+        "3540586476.jpeg",
+        "3540592441.jpeg",
+        "3942.gif",
+        "39512.bmp",
+        "42118.jpeg",
+        "43671.jpeg",
+        "4383.jpeg",
+        "45659.bmp",
+        "45874.jpeg",
+        "47367.jpeg",
+        "5110.jpeg",
+        "55043.gif",
+        "56220.gif",
+        "58561.jpeg",
+        "59623.jpeg",
+        "64396.gif",
+        "78919.png",
+        "82756.jpeg",
+        "84344.png",
+        "84643.jpeg",
+        "8536.jpeg",
+        "85650.jpeg",
+        "87796.gif",
+        "88090.jpeg",
+        "89509.png",
+        "89531.jpeg"
+      ]
+    };
+
+    let reviewer = "";
+    let queue = [];
+    let currentIndex = 0;
+    let startTime = 0;
+    let formState = { confidence: null, score: null };
+
+    // Load previously completed images for this browser so friends don't repeat logos
+    const completed = new Set(JSON.parse(localStorage.getItem("completed_logos") || "[]"));
+
+    function shuffle(arr) {
+      for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
+      return arr;
+    }
+
+    function startSession() {
+      const nameVal = document.getElementById("reviewerInput").value.trim();
+      if (!nameVal) return alert("Please enter a name or nickname first.");
+      reviewer = nameVal;
+      localStorage.setItem("reviewer_name", reviewer);
+      document.getElementById("reviewerDisplay").textContent = `Reviewer: ${reviewer}`;
+
+      queue = shuffle(CONFIG.IMAGES.filter(img => !completed.has(img)));
+      document.getElementById("setupScreen").style.display = "none";
+      updateProgress();
+
+      if (queue.length === 0) {
+        document.getElementById("doneScreen").style.display = "block";
+      } else {
+        document.getElementById("evalScreen").style.display = "block";
+        loadCurrentLogo();
+      }
+    }
+
+    function updateProgress() {
+      document.getElementById("progressDisplay").textContent =
+        `${completed.size} / ${CONFIG.IMAGES.length} completed`;
+    }
+
+    function selectOption(field, value, btnEl) {
+      formState[field] = value;
+      const group = btnEl.parentElement;
+      Array.from(group.children).forEach(b => b.classList.remove("active"));
+      btnEl.classList.add("active");
+    }
+
+    function loadCurrentLogo() {
+      if (currentIndex >= queue.length) {
+        document.getElementById("evalScreen").style.display = "none";
+        document.getElementById("doneScreen").style.display = "block";
+        return;
+      }
+
+      const filename = queue[currentIndex];
+      document.getElementById("logoImg").src = CONFIG.LOGO_FOLDER + filename;
+
+      // Preload next image
+      if (currentIndex + 1 < queue.length) {
+        const preload = new Image();
+        preload.src = CONFIG.LOGO_FOLDER + queue[currentIndex + 1];
+      }
+
+      // Reset inputs
+      document.getElementById("literalInput").value = "";
+      document.getElementById("guessInput").value = "";
+      document.getElementById("notesInput").value = "";
+      formState = { confidence: null, score: null };
+      document.querySelectorAll(".pill-btn").forEach(b => b.classList.remove("active"));
+      document.getElementById("literalInput").focus();
+
+      startTime = Date.now();
+    }
+
+    function nextLogo() {
+      currentIndex++;
+      loadCurrentLogo();
+    }
+
+    async function submitRating() {
+      const literal_read = document.getElementById("literalInput").value.trim();
+      const best_guess = document.getElementById("guessInput").value.trim();
+      const notes = document.getElementById("notesInput").value.trim();
+
+      if (!formState.confidence || !formState.score) {
+        return alert("Please select both a Confidence level and a Score (1–5).");
+      }
+
+      const btn = document.getElementById("submitBtn");
+      btn.disabled = true;
+      btn.textContent = "Saving...";
+
+      const currentImage = queue[currentIndex];
+      const payload = {
+reviewer,
+image: currentImage,
+literal_read: literal_read || "[?]",
+best_guess: best_guess || "Unknown",
+confidence: formState.confidence,
+score: formState.score,
+notes: notes || "",
+time_taken_sec: Math.round((Date.now() - startTime) / 1000)
+};
+try {
+await fetch(CONFIG.WEBHOOK_URL, {
+method: "POST",
+mode: "no-cors", // Prevents browser CORS block on Google Apps Script redirects
+headers: { "Content-Type": "application/json" },
+body: JSON.stringify(payload)
+});
+completed.add(currentImage);
+localStorage.setItem("completed_logos", JSON.stringify([...completed]));
+updateProgress();
+nextLogo();
+} catch (err) {
+alert("Network error saving response. Please try again.");
+} finally {
+btn.disabled = false;
+btn.textContent = "Submit & Next";
+}
+}
+// Auto-fill saved name if returning
+const savedName = localStorage.getItem("reviewer_name");
+if (savedName) document.getElementById("reviewerInput").value = savedName;
