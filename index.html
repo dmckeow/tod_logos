@@ -239,6 +239,8 @@
       startBtn.disabled = true;
       startBtn.textContent = "Checking progress...";
 
+      let voteCounts = {};
+
       try {
         const [logosRes, sheetRes] = await Promise.all([
           fetch("logos.json"),
@@ -246,10 +248,11 @@
         ]);
         CONFIG.IMAGES = await logosRes.json();
         const data = await sheetRes.json();
-        const serverCompleted = data.completed || [];
-        const voteCounts = data.counts || {};
 
-        // Warn if existing progress is found under this name
+        // Handles both new { completed, counts } object and older array format
+        const serverCompleted = Array.isArray(data) ? data : (data.completed || []);
+        voteCounts = Array.isArray(data) ? {} : (data.counts || {});
+
         if (serverCompleted.length > 0) {
           const proceed = confirm(
             `Found ${serverCompleted.length} completed logos for "${nameVal}".\n\n` +
@@ -271,6 +274,7 @@
         serverCompleted.forEach(img => completed.add(img));
         localStorage.setItem("completed_logos", JSON.stringify([...completed]));
       } catch (e) {
+        console.error(e);
         startBtn.disabled = false;
         startBtn.textContent = "Start Evaluating";
         return alert("Could not load logo list. Please refresh and try again.");
